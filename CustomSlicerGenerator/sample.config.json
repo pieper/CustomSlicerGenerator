@@ -1,0 +1,32 @@
+{
+  "TargetAppName" : "SlicerCMF",
+
+  "ModulesToKeep" : [
+                      "MeshToLabelMap",
+                      "Transforms",
+                      "Markups",
+                      "Models",
+                      "Data",
+                      "DICOM",
+                      "VolumeRendering",
+                      "GrayscaleModelMaker",
+                      "LabelMapSmoothing",
+                      "MergeModels",
+                      "ModelMaker",
+                      "ModelToLabelMap",
+                      "ProbeVolumeWithModel",
+                      "SurfaceToolbox",
+                      "Volumes",
+                      "SceneViews",
+                      "ScreenShots",
+                      "Fiducials",
+                      "Welcome to Slicer",
+                      "Wizard",
+                      "Colors",
+                      "Editor",
+
+                      "Cameras",
+                      "Annotations",
+                      "SubjectHierarchy"
+                     ]
+}
