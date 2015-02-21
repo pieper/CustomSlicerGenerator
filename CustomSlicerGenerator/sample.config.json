@@ -16,17 +16,26 @@
                       "ModelToLabelMap",
                       "ProbeVolumeWithModel",
                       "SurfaceToolbox",
-                      "Volumes",
+                      "VolumesModule",
                       "SceneViews",
                       "ScreenShots",
                       "Fiducials",
-                      "Welcome to Slicer",
+                      "SlicerWelcome",
                       "Wizard",
                       "Colors",
                       "Editor",
+                      "LandmarkRegistration",
+                      "CompareVolumes",
 
                       "Cameras",
                       "Annotations",
-                      "SubjectHierarchy"
-                     ]
+                      "SubjectHierarchy",
+                      "Units"
+                     ],
+
+  "ModulesToSkip" : [
+                      "Test.py",
+                      "CreateDICOMSeries",
+                      "DICOM2FullBrainTractography"
+                    ]
 }

@@ -146,8 +146,10 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     layout to decide if a file is part of a module that we don't
     want to include."""
     
+    # reject cruft
     if filePath.endswith('.pyc'):
       return False
+    # accept extensions anid non-module files
     if self.isExtensionFile(filePath):
       return True 
     if not self.isModuleFile(filePath):
@@ -155,11 +157,22 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     
     fileName = os.path.split(filePath)[-1]
     parentDirectory = os.path.split(filePath)[-2]
+
+    # reject anything specifically excluded
+    for moduleName in config['ModulesToSkip']:
+      modulePattern = '*'+moduleName+'*'
+      if fnmatch.fnmatch(fileName, modulePattern) or \
+         fnmatch.fnmatch(parentDirectory, modulePattern):
+        return False
+
+    # accept anything specifically included
     for moduleName in config['ModulesToKeep']:
       modulePattern = '*'+moduleName+'*'
       if fnmatch.fnmatch(fileName, modulePattern) or \
          fnmatch.fnmatch(parentDirectory, modulePattern):
         return True
+
+    # reject anything not specifically mentioned
     return False
 
   def generate(self,configPath,targetDirectoryPath,force=False,fileCountLimit=-1):
@@ -193,6 +206,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
 
     slicerDirecory = os.path.join(slicer.app.slicerHome, "../")
 
+    logFP = open(os.path.join(targetDirectoryPath,targetAppDirectory+".log.txt"), "w")
     skippedFileList = []
     fileList = []
     for root, subFolders, files in os.walk(slicerDirecory):
@@ -211,11 +225,13 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
           except OSError:
             pass # not a problem that directories exist
           print('copy ', filePath, targetDir)
+          logFP.write('copy \n' + filePath + '\n to \n->' + targetDir + "\n")
           shutil.copy(filePath, targetDir)
         else:
           print('skip ', filePath, targetDir)
+          logFP.write('skip ' + filePath + "\n")
           skippedFileList.append(filePath)
-    print("skipped: ", skippedFileList)
+    logFP.close()
     return "Ok"
 
 class CustomSlicerGeneratorTest(ScriptedLoadableModuleTest):
