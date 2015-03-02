@@ -145,16 +145,16 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     """Use platform-specific custom knowledge of the Slicer directory
     layout to decide if a file is part of a module that we don't
     want to include."""
-    
+
     # reject cruft
     if filePath.endswith('.pyc'):
       return False
     # accept extensions anid non-module files
     if self.isExtensionFile(filePath):
-      return True 
+      return True
     if not self.isModuleFile(filePath):
-      return True 
-    
+      return True
+
     fileName = os.path.split(filePath)[-1]
     parentDirectory = os.path.split(filePath)[-2]
 
@@ -176,9 +176,11 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     return False
 
   def generate(self,configPath,targetDirectoryPath,force=False,fileCountLimit=-1):
-    """Performs the actual deed"""
+    """Performs the actual deed of making a custom application directory"""
 
+    # get the config information
     try:
+      # TODO: get config from a url (e.g. gist)
       configFP = open(configPath, 'r')
       configJSON = configFP.read()
       try:
@@ -190,12 +192,11 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       print(e)
       return str(e)
 
-
+    # determine and confirm target directory
     targetAppDirectory = config['TargetAppName']
     if slicer.app.platform.startswith('macosx'):
       targetAppDirectory += ".app"
     targetAppPath = os.path.join(targetDirectoryPath,targetAppDirectory)
-
     if os.path.exists(targetAppPath):
       if force:
         shutil.rmtree(targetAppPath)
@@ -204,26 +205,27 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
 
     self.delayDisplay('Generating...', 50)
 
-    slicerDirecory = os.path.join(slicer.app.slicerHome, "../")
+    slicerDirectory = os.path.join(slicer.app.slicerHome, "../")
 
+    # copy files selectively according to config
     logFP = open(os.path.join(targetDirectoryPath,targetAppDirectory+".log.txt"), "w")
     skippedFileList = []
     fileList = []
-    for root, subFolders, files in os.walk(slicerDirecory):
+    for root, subFolders, files in os.walk(slicerDirectory):
       if fileCountLimit > 0 and len(fileList) > fileCountLimit:
         return "Stopping after %d files" % fileCountLimit
       for fileName in files:
         filePath = os.path.join(root,fileName)
         fileList.append(filePath)
         if self.checkFilePath(config,filePath):
-          sourcePath = filePath[len(slicerDirecory):] # strip common dir
+          sourcePath = filePath[len(slicerDirectory):] # strip common dir
           targetFilePath = os.path.join(targetAppPath,sourcePath)
           targetDir = os.path.join(os.path.split(targetFilePath)[:-1])[0]
           try:
             # creates all directories, raises an error if it already exists
-            os.makedirs(targetDir) 
+            os.makedirs(targetDir)
           except OSError:
-            pass # not a problem that directories exist
+            pass # not a problem if directories already exist
           print('copy ', filePath, targetDir)
           logFP.write('copy \n' + filePath + '\n to \n->' + targetDir + "\n")
           shutil.copy(filePath, targetDir)
@@ -231,6 +233,49 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
           print('skip ', filePath, targetDir)
           logFP.write('skip ' + filePath + "\n")
           skippedFileList.append(filePath)
+
+    # fix the name of the app executable
+    if slicer.app.platform.startswith('macosx'):
+      sourceAppReal = os.path.join(slicerDirectory, "Contents/MacOS/Slicer")
+      targetAppRealPath = os.path.join(targetDirectoryPath, targetAppDirectory, "Contents/MacOS/")
+      targetAppReal = os.path.join(targetAppRealPath, config['TargetAppName'])
+    elif slicer.app.platform.startswith('win'):
+      sourceAppReal = os.path.join(slicerDirectory, "bin/SlicerApp-real.exe")
+      targetAppExecutable = config['TargetAppName'] + "App-real.exe"
+      targetAppRealPath = os.path.join(targetDirectoryPath, targetAppDirectory, "bin")
+      targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
+    else:
+      sourceAppReal = os.path.join(slicerDirectory, "bin/SlicerApp-real")
+      targetAppExecutable = config['TargetAppName'] + "App-real"
+      targetAppRealPath = os.path.join(targetDirectoryPath, targetAppDirectory, "bin")
+      targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
+    # move the app to the right spot
+    try:
+      # creates all directories, raises an error if it already exists
+      os.makedirs(targetAppRealPath)
+    except OSError:
+      pass # not a problem if directories already exist
+    print('copy ', sourceAppReal, targetAppReal)
+    logFP.write('copy '+ sourceAppReal + " to " + targetAppReal)
+    shutil.copy(sourceAppReal, targetAppReal)
+
+    # fix the metadata file to launch the new executable name
+    targetAppName = config['TargetAppName']
+    if slicer.app.platform.startswith('win'):
+      targetAppName += ".exe"
+    if slicer.app.platform.startswith('macosx'):
+      # change the plist file
+      targetSettingsPath = os.path.join(targetDirectoryPath, targetAppDirectory, "Contents/Info.plist")
+      settings = qt.QSettings(targetSettingsPath, qt.QSettings.NativeFormat)
+      settings.setValue("CFBundleExecutable", targetAppName)
+    else:
+      targetSettingsPath = os.path.join(targetDirectoryPath, targetAppDirectory, "bin/SlicerLauncherSettings.ini")
+      settings = qt.QSettings(targetSettingsPath, qt.QSettings.IniFormat)
+      settings.setValue("Application/path", "<APPLAUNCHER_DIR>/./bin/"+targetAppName)
+    settings.sync()
+
+    # TODO: add a custom welcome module
+
     logFP.close()
     return "Ok"
 
@@ -285,3 +330,4 @@ class CustomSlicerGeneratorTest(ScriptedLoadableModuleTest):
     slicer.modules.CustomSlicerGeneratorWidget.onApplyButton()
 
     self.delayDisplay("Worked!")
+    self.delayDisplay("TODO: create a custom module and make it change the settings at startup.")
