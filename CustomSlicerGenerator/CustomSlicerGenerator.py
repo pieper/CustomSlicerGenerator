@@ -175,6 +175,18 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     # reject anything not specifically mentioned
     return False
 
+  def log(self,fp,message):
+    print(message)
+    fp.write(message + "\n")
+    
+  def loggedCopy(self,fp,source,target):
+    print('copy ', source, target)
+    fp.write('copy \n' + source + '\n to \n->' + target + "\n")
+    if os.path.isdir(source):
+      shutil.copytree(source, target)
+    else:
+      shutil.copy(source, target)
+
   def generate(self,configPath,targetDirectoryPath,force=False,fileCountLimit=-1):
     """Performs the actual deed of making a custom application directory"""
 
@@ -226,13 +238,73 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
             os.makedirs(targetDir)
           except OSError:
             pass # not a problem if directories already exist
-          print('copy ', filePath, targetDir)
-          logFP.write('copy \n' + filePath + '\n to \n->' + targetDir + "\n")
-          shutil.copy(filePath, targetDir)
+          self.loggedCopy(logFP, filePath, targetDir)
         else:
-          print('skip ', filePath, targetDir)
-          logFP.write('skip ' + filePath + "\n")
+          self.log(logFP, 'skip ' + filePath)
           skippedFileList.append(filePath)
+
+    # copy the configuration into the target directory
+    self.loggedCopy(logFP, configPath, targetAppPath)
+
+    # for custom targets, decide if we are going beside the app (windows/linux)
+    # or inside the app (mac)
+    interDirectory = ""
+    if slicer.app.platform.startswith('macosx'):
+      interDirectory = "Contents"
+
+    # copy all directories in the module path into
+    # a special CustomExtensions directory, which
+    # will be added to the settings by the Customizer
+    customExtensionsPath = os.path.join(
+                            targetAppPath,
+                            interDirectory,
+                            config['TargetAppName'] + "-Extensions")
+    customExtensionRelativePaths = []
+    os.makedirs(customExtensionsPath)
+    revisionSettings = slicer.app.revisionUserSettings()
+    paths = revisionSettings.value('Modules/AdditionalPaths')
+    for path in paths:
+      sourcePath = None
+      targetPath = None
+      extIndex = path.find("Extensions-")
+      if extIndex != -1:
+        extStartIndex = 1+path.find('/', extIndex)
+        if extStartIndex != 0:
+          extEndIndex = path.find('/', extStartIndex)
+          if extEndIndex != -1:
+            sourcePath = path[:extEndIndex]
+            targetRelativePath = path[extStartIndex:extEndIndex]
+            targetRelativeSearchPath = path[extStartIndex:]
+            targetPath = os.path.join(customExtensionsPath, targetRelativePath)
+            customExtensionRelativePaths.append(targetRelativeSearchPath)
+      if sourcePath and targetPath:
+        if not os.path.isdir(targetPath):
+          self.loggedCopy(logFP, sourcePath, targetPath)
+      else:
+        self.log(logFP, "Could not find extension pats for " + path)
+
+
+    # make a custom version of the Customizer module
+    customizerPath = os.path.join(
+                      os.path.dirname(slicer.modules.customslicergenerator.path),
+                      "../Customizer/Customizer.py")
+    fp = open(customizerPath)
+    moduleSource = fp.read()
+    fp.close()
+    targetCustomizerModuleName = config['TargetAppName'] + "Customizer" 
+    moduleSource = moduleSource.replace("Customizer", targetCustomizerModuleName)
+    moduleSource = moduleSource.replace("@CUSTOM_APP_NAME@", config['TargetAppName'])
+    moduleSource = moduleSource.replace("@CUSTOM_REL_PATHS@", str(customExtensionRelativePaths))
+    targetPath = os.path.join(
+                  targetAppPath,
+                  interDirectory,
+                  "lib/Slicer-%d.%d" % (slicer.app.majorVersion, slicer.app.minorVersion),
+                  "qt-scripted-modules",
+                  targetCustomizerModuleName + ".py")
+    fp = open(targetPath, "w")
+    fp.write(moduleSource)
+    fp.close()
+
 
     # fix the name of the app executable
     if slicer.app.platform.startswith('macosx'):

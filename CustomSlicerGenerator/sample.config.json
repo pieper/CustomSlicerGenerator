@@ -25,6 +25,7 @@
                       "Colors",
                       "Editor",
                       "LandmarkRegistration",
+                      "RegistrationLib",
                       "CompareVolumes",
 
                       "Cameras",

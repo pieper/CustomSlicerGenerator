@@ -19,6 +19,7 @@ include(${Slicer_USE_FILE})
 #-----------------------------------------------------------------------------
 # Extension modules
 add_subdirectory(CustomSlicerGenerator)
+add_subdirectory(Customizer)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
