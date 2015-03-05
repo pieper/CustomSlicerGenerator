@@ -17,7 +17,7 @@ class CustomSlicerGenerator(ScriptedLoadableModule):
 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    self.parent.title = "CustomSlicerGenerator" # TODO make this more human readable by adding spaces
+    self.parent.title = "CustomSlicerGenerator"
     self.parent.categories = ["Developer Tools"]
     self.parent.dependencies = []
     self.parent.contributors = ["Steve Pieper (Isomics, Inc.)"] # replace with "Firstname Lastname (Organization)"
@@ -101,15 +101,15 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
       message.setWindowTitle("CustomSlicerGenerator")
       message.showMessage("Must select config file and and otuput path")
     logic = CustomSlicerGeneratorLogic()
-    result = logic.generate(configPath, targetDirectoryPath)
+    result,detail = logic.generate(configPath, targetDirectoryPath)
     if result == "AppExists":
       answer = qt.QMessageBox().question(
         slicer.app.activeWindow(),
         "Target Exists",
-        "The application directory exists.  Click Ok to overwrite.",
+        "The application directory exists.  \n\n%s\n\nClick Ok to overwrite." % detail,
         qt.QMessageBox.Ok | qt.QMessageBox.Cancel)
       if answer == qt.QMessageBox.Ok:
-        result = logic.generate(configPath, targetDirectoryPath,force=True)
+        result,detail = logic.generate(configPath, targetDirectoryPath,force=True)
     print(result)
     if result != "Ok":
       self.message.showMessage(result)
@@ -179,7 +179,16 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     print(message)
     fp.write(message + "\n")
     
-  def loggedCopy(self,fp,source,target):
+  def loggedCopy(self,fp,source,target,config):
+    """Handles copy and keeps log.  Note it maps the app name too"""
+    sourcePath,sourceFileName = os.path.split(source)
+    if os.path.isdir(target):
+      targetPath = target
+    else:
+      targetPath,targetFileName = os.path.split(target)
+    if sourceFileName == "Slicer": target = os.path.join(targetPath, config['TargetAppName'])
+    if sourceFileName == "Slicer.exe": target = os.path.join(targetPath, config['TargetAppName'] + ".exe")
+    if sourceFileName == "SlicerLauncherSettings.ini": target = os.path.join(targetPath, config['TargetAppName'] + "LauncherSettings.ini")
     print('copy ', source, target)
     fp.write('copy \n' + source + '\n to \n->' + target + "\n")
     if os.path.isdir(source):
@@ -213,11 +222,18 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       if force:
         shutil.rmtree(targetAppPath)
       else:
-        return "AppExists"
+        return ("AppExists", targetAppPath)
 
     self.delayDisplay('Generating...', 50)
 
-    slicerDirectory = os.path.join(slicer.app.slicerHome, "../")
+    if slicer.app.platform.startswith('macosx'):
+      slicerDirectory = os.path.join(slicer.app.slicerHome, "../")
+    else:
+      slicerDirectory = slicer.app.slicerHome
+
+    if slicerDirectory[-1] != "/":
+      slicerDirectory = slicerDirectory + "/"
+
 
     # copy files selectively according to config
     logFP = open(os.path.join(targetDirectoryPath,targetAppDirectory+".log.txt"), "w")
@@ -225,26 +241,32 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     fileList = []
     for root, subFolders, files in os.walk(slicerDirectory):
       if fileCountLimit > 0 and len(fileList) > fileCountLimit:
-        return "Stopping after %d files" % fileCountLimit
+        return ("stopped", "Stopping after %d files" % fileCountLimit)
       for fileName in files:
         filePath = os.path.join(root,fileName)
+        print('considering ', filePath)
         fileList.append(filePath)
         if self.checkFilePath(config,filePath):
           sourcePath = filePath[len(slicerDirectory):] # strip common dir
+          print('sourcePath ', sourcePath)
           targetFilePath = os.path.join(targetAppPath,sourcePath)
-          targetDir = os.path.join(os.path.split(targetFilePath)[:-1])[0]
+          print('targetAppPath ', targetAppPath)
+          print('targetFilePath ', targetFilePath)
+          # targetDir = os.path.join(os.path.split(targetFilePath)[:-1])[0]
+          targetDir = os.path.dirname(targetFilePath)
+          print('targetDir ', targetDir)
           try:
             # creates all directories, raises an error if it already exists
             os.makedirs(targetDir)
           except OSError:
             pass # not a problem if directories already exist
-          self.loggedCopy(logFP, filePath, targetDir)
+          self.loggedCopy(logFP, filePath, targetDir, config)
         else:
           self.log(logFP, 'skip ' + filePath)
           skippedFileList.append(filePath)
 
     # copy the configuration into the target directory
-    self.loggedCopy(logFP, configPath, targetAppPath)
+    self.loggedCopy(logFP, configPath, targetAppPath, config)
 
     # for custom targets, decide if we are going beside the app (windows/linux)
     # or inside the app (mac)
@@ -263,6 +285,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     os.makedirs(customExtensionsPath)
     revisionSettings = slicer.app.revisionUserSettings()
     paths = revisionSettings.value('Modules/AdditionalPaths')
+    if not paths: paths = []
     for path in paths:
       sourcePath = None
       targetPath = None
@@ -279,9 +302,9 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
             customExtensionRelativePaths.append(targetRelativeSearchPath)
       if sourcePath and targetPath:
         if not os.path.isdir(targetPath):
-          self.loggedCopy(logFP, sourcePath, targetPath)
+          self.loggedCopy(logFP, sourcePath, targetPath, config)
       else:
-        self.log(logFP, "Could not find extension pats for " + path)
+        self.log(logFP, "Could not find extension paths for " + path)
 
 
     # make a custom version of the Customizer module
@@ -339,17 +362,15 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       # change the plist file
       targetSettingsPath = os.path.join(targetDirectoryPath, targetAppDirectory, "Contents/Info.plist")
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.NativeFormat)
-      settings.setValue("CFBundleExecutable", targetAppName)
+      settings.setValue("CFBundleExecutable", targetAppExecutable)
     else:
       targetSettingsPath = os.path.join(targetDirectoryPath, targetAppDirectory, "bin/SlicerLauncherSettings.ini")
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.IniFormat)
-      settings.setValue("Application/path", "<APPLAUNCHER_DIR>/./bin/"+targetAppName)
+      settings.setValue("Application/path", "<APPLAUNCHER_DIR>/./bin/"+targetAppExecutable)
     settings.sync()
 
-    # TODO: add a custom welcome module
-
     logFP.close()
-    return "Ok"
+    return ("Ok", "")
 
 class CustomSlicerGeneratorTest(ScriptedLoadableModuleTest):
   """
@@ -402,4 +423,3 @@ class CustomSlicerGeneratorTest(ScriptedLoadableModuleTest):
     slicer.modules.CustomSlicerGeneratorWidget.onApplyButton()
 
     self.delayDisplay("Worked!")
-    self.delayDisplay("TODO: create a custom module and make it change the settings at startup.")
