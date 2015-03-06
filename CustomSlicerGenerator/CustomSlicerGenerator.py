@@ -362,7 +362,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       # change the plist file
       targetSettingsPath = os.path.join(targetDirectoryPath, targetAppDirectory, "Contents/Info.plist")
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.NativeFormat)
-      settings.setValue("CFBundleExecutable", targetAppExecutable)
+      settings.setValue("CFBundleExecutable", config['TargetAppName'])
     else:
       targetSettingsPath = os.path.join(targetDirectoryPath, targetAppDirectory, "bin/SlicerLauncherSettings.ini")
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.IniFormat)

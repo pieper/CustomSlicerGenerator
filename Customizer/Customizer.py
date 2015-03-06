@@ -30,15 +30,31 @@ class Customizer(ScriptedLoadableModule):
 
     # Trigger the Customizer dialog to be shown when application has started up
     if not slicer.app.commandOptions().noMainWindow :
-      logic = CustomizerLogic()
-      qt.QTimer.singleShot(0, logic.loadCustomExtensions)
+      self.logic = CustomizerLogic()
       qt.QTimer.singleShot(0, self.showCustomizerWelcome)
 
   def showCustomizerWelcome(self):
+
     title = "Customizer"
-    text = "Welcome to @CUSTOM_APP_NAME@!"
-    qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
-    
+    if self.logic.pathsAreSet():
+      text = "Welcome to @CUSTOM_APP_NAME@!"
+      qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
+    else:
+      if self.logic.currentAdditionalModulePaths() != []:
+        text = "Warning: your Slicer installation configuration will be overwritten to allow the installation and use of @CUSTOM_APP_NAME@.\n\nClick Ok to continue installation or Cancel to preserve your current state"
+        choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
+        if choice == qt.QMessageBox.Cancel:
+          text = "@CUSTOM_APP_NAME@ is not correctly configured.  Some operations will be be possible."
+          qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
+          return
+        else:
+          self.logic.setRequiredPaths()
+          text = "Configuration complete.  Click Okay to restart @CUSTOM_APP_NAME@."
+          choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
+          if choice == qt.QMessageBox.Ok:
+            slicer.util.restart()
+
+
 
 #
 # CustomizerWidget
@@ -69,7 +85,44 @@ class CustomizerLogic(ScriptedLoadableModuleLogic):
   """ To implement the customization process
   """
 
+  def currentAdditionalModulePaths(self):
+    revisionSettings = slicer.app.revisionUserSettings()
+    currentPaths = revisionSettings.value('Modules/AdditionalPaths')
+    if not currentPaths: currentPaths = []
+    return currentPaths
+
+  def requiredAdditionalModulePaths(self):
+    """Generate the list of absolute paths
+    required to run the extensions related
+    to this custom slicer"""
+    requiredPaths = []
+    for relPath in @CUSTOM_REL_PATHS@:
+      absPath = os.path.join(
+                  slicer.app.slicerHome,
+                  "@CUSTOM_APP_NAME@"+"-Extensions",
+                  relPath)
+      requiredPaths.append(absPath)
+    return requiredPaths
+
+  def pathsAreSet(self):
+    """returns the current list of module paths"""
+    currentPaths = self.currentAdditionalModulePaths()
+    requiredPaths = self.requiredAdditionalModulePaths()
+    for requiredPath in requiredPaths:
+      if not requiredPath in currentPaths:
+        return False
+    return True
+
+  def setRequiredPaths(self):
+    """sets the required module paths"""
+    revisionSettings = slicer.app.revisionUserSettings()
+    requiredPaths = self.requiredAdditionalModulePaths()
+    revisionSettings.setValue('Modules/AdditionalPaths', requiredPaths)
+
   def loadCustomExtensions(self,depth=1):
+    """TODO: this does not actually load the modules
+    correctly.  May not be possible to load shared libraries
+    and CLIs with this method"""
     factory = slicer.app.moduleManager().factoryManager()
     loadedModules = factory.instantiatedModuleNames()
 
@@ -99,14 +152,14 @@ class CustomizerLogic(ScriptedLoadableModuleLogic):
       else:
         print("Loaded all new modules correctly!")
         print("New modules are: " + str(newModules))
-          
+
 
   def customize(self):
     # TODO: set module paths to include all the extensions
     # that are in the application directory
 
     factory = slicer.app.moduleManager().factoryManager()
-    
+
     return True
 
   def verifyCustomConfiguration(self):
