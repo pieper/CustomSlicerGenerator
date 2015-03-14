@@ -13,7 +13,7 @@ http://www.slicer.org/slicerWiki/index.php/Documentation/Labs/CustomSlicerGenera
 
 # How?
 * Clone this repository
-* Get-or-create a release build of Slicer.  This works best with a build after March 5, 2015 (code includes [this change](https://github.com/Slicer/Slicer/commit/454fed0f5f2f8ea18269f2bfdfc4733326c4c6d7) and [this fix](https://github.com/Slicer/Slicer/commit/567055d01a362cfd23653f1a56b92869c2998a14) will have independent settings for the original Slicer and your CustomSlicer)
+* Get-or-create a release build of Slicer.  This works best with a build after March 5, 2015 (that is, Slicer code that includes [this change](https://github.com/Slicer/Slicer/commit/454fed0f5f2f8ea18269f2bfdfc4733326c4c6d7) and [this fix](https://github.com/Slicer/Slicer/commit/567055d01a362cfd23653f1a56b92869c2998a14) so it will have independent settings for the original Slicer and your CustomSlicer)
 * Start Slicer with a command something like:
 ```sh
 ./Slicer --additional-module-paths ./CustomSlicerGenerator/CustomSlicerGenerator
@@ -43,7 +43,7 @@ A Mac and Windows version are [available in this folder on midas](http://slicer.
 Think carefully about becoming a software distributor - it's more than just creating an executable and putting it on a web site.  It means that people will be coming to you with questions and suggestions, sometimes complaints, and sometimes praise.  It also means you need to consider the licenses of anything you distribute; [Slicer's license](http://slicer.org/pages/LicenseText) allows you to use and redistribute the code anyway you want, but not everybody is that generous.  Also remember that people will be trusting you with their precious data, so be careful.
 
 # Issues?
-Only extensions and modules that are in side the Slicer application are considered.  If you have custom modules that aren't extensions, you can install them into the application.  Scripts are easy, just put them in, for example, lib/Slicer-4.4/qt-scripted-modules.  If you have C++ modules you will need to build them in release mode (probably you will want to build your own Slicer application distribution too).  It's probably less work to make these into regular Slicer extensions so that all the build and test work is done by the factory machines for all platforms.
+Only extensions and modules that are inside the Slicer application are considered.  If you have custom modules that aren't extensions, you can install them into the application directory tree.  Scripts are easy, just put them in, for example, lib/Slicer-4.4/qt-scripted-modules.  If you have C++ modules you will need to build them in release mode (probably you will want to build your own Slicer application distribution too).  For almost all purposes it's probably preferable to make these into regular Slicer extensions so that all the build and test work is done by the factory machines for all platforms.  The main reason someone might build their own Slicer release as a base for a CustomSlicer is if they don't want to make their work public.
 
 # Next steps?
 The current state of the CustomSlicerGenerator was enough for our SlicerCMF purposes.  There are other ideas listed [on the Slicer labs page](http://www.slicer.org/slicerWiki/index.php/Documentation/Labs/CustomSlicerGenerator) but they aren't hot-button issues so probably won't happen until/unless someone finds them important enough to work on.
