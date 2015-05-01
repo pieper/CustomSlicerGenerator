@@ -310,7 +310,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     # make a custom version of the Customizer module
     customizerPath = os.path.join(
                       os.path.dirname(slicer.modules.customslicergenerator.path),
-                      "../Customizer/Customizer.py")
+                      "..","Customizer","Customizer.py")
     fp = open(customizerPath)
     moduleSource = fp.read()
     fp.close()
