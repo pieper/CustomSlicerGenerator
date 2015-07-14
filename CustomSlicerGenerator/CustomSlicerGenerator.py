@@ -317,6 +317,10 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     targetCustomizerModuleName = config['TargetAppName'] + "Customizer" 
     moduleSource = moduleSource.replace("Customizer", targetCustomizerModuleName)
     moduleSource = moduleSource.replace("@CUSTOM_APP_NAME@", config['TargetAppName'])
+    if 'WelcomeMessage' in config:
+      moduleSource = moduleSource.replace("@CUSTOM_WELCOME_MESSAGE@", config['WelcomeMessage'])
+    else:
+      moduleSource = moduleSource.replace("@CUSTOM_WELCOME_MESSAGE@", "")
     moduleSource = moduleSource.replace("@CUSTOM_REL_PATHS@", str(customExtensionRelativePaths))
     targetPath = os.path.join(
                   targetAppPath,

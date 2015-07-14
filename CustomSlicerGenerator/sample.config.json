@@ -1,8 +1,9 @@
 {
   "TargetAppName" : "SlicerCMF",
 
+  "WelcomeMessage" : "This project is funded by R01DE024450 University of Michigan Quantification Of 3D Bony Changes In Temporomandibular Joint Osteoarthritis.",
+
   "ModulesToKeep" : [
-                      "MeshToLabelMap",
                       "Transforms",
                       "Markups",
                       "Models",
@@ -27,7 +28,6 @@
                       "LandmarkRegistration",
                       "RegistrationLib",
                       "CompareVolumes",
-
                       "Cameras",
                       "Annotations",
                       "SubjectHierarchy",
