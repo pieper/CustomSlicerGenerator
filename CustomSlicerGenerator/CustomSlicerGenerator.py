@@ -112,7 +112,7 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
         result,detail = logic.generate(configPath, targetDirectoryPath,force=True)
     print(result)
     if result != "Ok":
-      self.message.showMessage(result)
+      self.message.showMessage(detail)
     else:
       qt.QDesktopServices().openUrl(qt.QUrl('file://'+targetDirectoryPath))
 
@@ -207,11 +207,11 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       try:
         config = json.JSONDecoder().decode(configJSON)
       except ValueError:
-        return "Could not parse json in config file.  If you don't see an obvious error in the file, try an on-line validator such as jsonlint.com."
+        return ("Error","Could not parse json in config file.  If you don't see an obvious error in the file, try an on-line validator such as jsonlint.com.")
       configFP.close()
     except Exception, e:
       print(e)
-      return str(e)
+      return ("Error",str(e))
 
     # determine and confirm target directory
     targetAppDirectory = config['TargetAppName']
