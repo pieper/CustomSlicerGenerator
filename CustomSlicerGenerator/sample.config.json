@@ -3,6 +3,8 @@
 
   "WelcomeMessage" : "This project is funded by R01DE024450 University of Michigan Quantification Of 3D Bony Changes In Temporomandibular Joint Osteoarthritis.",
 
+  "Version" : "1.0",
+
   "ModulesToKeep" : [
                       "Transforms",
                       "Markups",

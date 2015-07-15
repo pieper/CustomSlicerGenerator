@@ -38,6 +38,8 @@ class Customizer(ScriptedLoadableModule):
     title = "Customizer"
     if self.logic.pathsAreSet():
       text = "Welcome to @CUSTOM_APP_NAME@!"
+      if "@CUSTOM_VERSION_NUMBER@" != "":
+        text +="\n\nVersion: @CUSTOM_VERSION_NUMBER@"
       if "@CUSTOM_WELCOME_MESSAGE@" != "":
         text +="\n\n@CUSTOM_WELCOME_MESSAGE@"
       qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
