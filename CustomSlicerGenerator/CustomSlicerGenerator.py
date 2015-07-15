@@ -306,7 +306,16 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       else:
         self.log(logFP, "Could not find extension paths for " + path)
 
-
+    # If on MacOS, remove the original extension files that have been duplicated
+    if slicer.app.platform.startswith('macosx'):
+      originalExtensionsPath = os.path.join(
+                            targetAppPath,
+                            interDirectory,
+                            "Extensions-"+slicer.app.repositoryRevision
+                            )
+      self.log(logFP, 'removing ' + originalExtensionsPath)
+      print('removing ', originalExtensionsPath)
+      shutil.rmtree(originalExtensionsPath)
     # make a custom version of the Customizer module
     customizerPath = os.path.join(
                       os.path.dirname(slicer.modules.customslicergenerator.path),
