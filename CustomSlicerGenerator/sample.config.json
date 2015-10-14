@@ -1,8 +1,25 @@
 {
   "TargetAppName" : "SlicerCMF",
 
-  "ModulesToKeep" : [
+  "WelcomeMessage" : "This project is funded by R01DE024450 University of Michigan Quantification Of 3D Bony Changes In Temporomandibular Joint Osteoarthritis.",
+
+  "Version" : "2.1",
+
+  "RequiredExtensions" : [
+                      "SPHARM-PDM",
+                      "ModelToModelDistance",
+                      "IntensitySegmenter",
+                      "AnglePlanesExtension",
+                      "CMFreg",
+                      "EasyClip",
+                      "MeshStatisticsExtension",
                       "MeshToLabelMap",
+                      "PickAndPaintExtension",
+                      "Q3DC",
+                      "ShapePopulationViewer"
+                    ],
+
+  "ModulesToKeep" : [
                       "Transforms",
                       "Markups",
                       "Models",
@@ -27,7 +44,6 @@
                       "LandmarkRegistration",
                       "RegistrationLib",
                       "CompareVolumes",
-
                       "Cameras",
                       "Annotations",
                       "SubjectHierarchy",

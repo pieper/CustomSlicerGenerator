@@ -38,6 +38,10 @@ class Customizer(ScriptedLoadableModule):
     title = "Customizer"
     if self.logic.pathsAreSet():
       text = "Welcome to @CUSTOM_APP_NAME@!"
+      if "@CUSTOM_VERSION_NUMBER@" != "":
+        text +="\n\nVersion: @CUSTOM_VERSION_NUMBER@"
+      if "@CUSTOM_WELCOME_MESSAGE@" != "":
+        text +="\n\n@CUSTOM_WELCOME_MESSAGE@"
       qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
     else:
       if self.logic.currentAdditionalModulePaths() != []:
@@ -47,12 +51,11 @@ class Customizer(ScriptedLoadableModule):
           text = "@CUSTOM_APP_NAME@ is not correctly configured.  Some operations will be be possible."
           qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
           return
-        else:
-          self.logic.setRequiredPaths()
-          text = "Configuration complete.  Click Okay to restart @CUSTOM_APP_NAME@."
-          choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
-          if choice == qt.QMessageBox.Ok:
-            slicer.util.restart()
+      self.logic.setRequiredPaths()
+      text = "Configuration complete.  Click Okay to restart @CUSTOM_APP_NAME@."
+      choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
+      if choice == qt.QMessageBox.Ok:
+        slicer.util.restart()
 
 
 
