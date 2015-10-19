@@ -104,7 +104,7 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
 
   def doneGenerating(self):
     self.reset()
-    qt.QDesktopServices().openUrl(qt.QUrl('file://'+self.targetDirectoryButton.directory))
+    qt.QDesktopServices().openUrl(qt.QUrl(qt.QUrl.fromLocalFile(self.targetDirectoryButton.directory)))
     print "done generating!!!"
 
   def reset(self):
