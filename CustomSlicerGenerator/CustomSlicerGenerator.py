@@ -519,29 +519,26 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
 
 
     # fix the name of the app executable
-    if slicer.app.platform.startswith('macosx'):
-      sourceAppReal = os.path.join(slicerDirectory, "Contents/MacOS/Slicer")
-      targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "Contents/MacOS/")
-      targetAppReal = os.path.join(targetAppRealPath, config['TargetAppName'])
-    elif slicer.app.platform.startswith('win'):
-      sourceAppReal = os.path.join(slicerDirectory, "bin/SlicerApp-real.exe")
-      targetAppExecutable = config['TargetAppName'] + "App-real.exe"
-      targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
-      targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
-    else:
-      sourceAppReal = os.path.join(slicerDirectory, "bin/SlicerApp-real")
-      targetAppExecutable = config['TargetAppName'] + "App-real"
-      targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
-      targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
-    # move the app to the right spot
-    try:
-      # creates all directories, raises an error if it already exists
-      os.makedirs(targetAppRealPath)
-    except OSError:
-      pass # not a problem if directories already exist
-    print('copy ', sourceAppReal, targetAppReal)
-    logFP.write('copy '+ sourceAppReal + " to " + targetAppReal)
-    shutil.copy(sourceAppReal, targetAppReal)
+    if not slicer.app.platform.startswith('macosx'):
+      if slicer.app.platform.startswith('win'):
+        targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
+        targetAppExecutable = config['TargetAppName'] + "App-real.exe"
+        targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
+        sourceAppReal = os.path.join(targetAppRealPath, "SlicerApp-real.exe")
+      else:
+        targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
+        targetAppExecutable = config['TargetAppName'] + "App-real"
+        targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
+        sourceAppReal = os.path.join(targetAppRealPath, "SlicerApp-real")
+      # move the app to the right spot
+      try:
+        # creates all directories, raises an error if it already exists
+        os.makedirs(targetAppRealPath)
+      except OSError:
+        pass # not a problem if directories already exist
+      print('move ', sourceAppReal, targetAppReal)
+      logFP.write('move '+ sourceAppReal + " to " + targetAppReal)
+      shutil.move(sourceAppReal, targetAppReal)
 
     # fix the metadata file to launch the new executable name
     targetAppName = config['TargetAppName']
