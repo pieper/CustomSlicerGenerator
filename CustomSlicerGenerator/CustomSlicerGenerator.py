@@ -135,9 +135,10 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
     self.logic.configure(configPath,targetDirectoryPath,self.myQObject)
     self.logic.generate()
     forceVal = False
-    if self.logic.errorMessage == "AppExists":
+    if self.logic.errorMessage.startswith("AppExists:"):
+      targetDirectory = self.logic.errorMessage[len("AppExists:"):]
       answer = self.showErrorMessage("Target Exists","The application directory exists."
-                                                     '\n\n%s\n\nClick Ok to overwrite.' % targetDirectoryPath)
+                                                     '\n\n%s\n\nClick Ok to overwrite.' % targetDirectory)
       if answer == qt.QMessageBox.Ok:
         self.logic.configure(configPath,targetDirectoryPath,self.myQObject,force=True)
         self.logic.generate()
@@ -320,7 +321,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       if self.force:
         shutil.rmtree(targetAppPath)
       else:
-        self.errorMessage = "AppExists"
+        self.errorMessage = "AppExists: "+targetAppPath
         return
     logFP = open(os.path.join(self.targetDirectoryPath,targetAppDirectory+".log.txt"), "w")
     # Check if there are updates available for extensions that are already installed
