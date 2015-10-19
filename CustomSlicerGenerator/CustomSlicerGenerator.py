@@ -553,7 +553,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.NativeFormat)
       settings.setValue("CFBundleExecutable", config['TargetAppName'])
     else:
-      targetSettingsPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin/SlicerLauncherSettings.ini")
+      targetSettingsPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin", config['TargetAppName'] + "LauncherSettings.ini")
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.IniFormat)
       settings.setValue("Application/path", "<APPLAUNCHER_DIR>/./bin/"+targetAppExecutable)
     settings.sync()
