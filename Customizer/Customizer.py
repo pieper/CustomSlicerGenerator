@@ -52,6 +52,12 @@ class Customizer(ScriptedLoadableModule):
           qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
           return
       self.logic.setRequiredPaths()
+      settings = qt.QSettings(slicer.app.slicerRevisionUserSettingsFilePath, qt.QSettings.IniFormat)
+      settings.setValue("Extensions/ManagerEnabled", "false")
+      if slicer.app.os is not "macos":
+        executableDir,executableFileName = os.path.split(slicer.app.launcherExecutableFilePath)
+        extensionsPath = os.path.join(executableDir, "Extensions-" + str(slicer.app.repositoryRevision))
+        settings.setValue("Extensions/InstallPath",extensionsPath)
       text = "Configuration complete.  Click Okay to restart @CUSTOM_APP_NAME@."
       choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
       if choice == qt.QMessageBox.Ok:
