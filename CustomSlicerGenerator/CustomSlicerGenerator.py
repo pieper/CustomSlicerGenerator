@@ -288,13 +288,14 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     self.fileCountLimit = fileCountLimit
     self.myQObject = qobject
     self.ignoreUpdates = ignoreUpdates
-    self.errorMessage = None
+    self.errorMessage = ""
 
   def generate(self):
     """Performs the actual deed of making a custom application directory"""
     print "Starting Generate()"
     # get the config information
     self.cancel = False
+    self.errorMessage == ""
     if self.configPath == "" or self.targetDirectoryPath == "":
       self.errorMessage = "Error", "logic must be configured before calling 'generate()'"
       return
