@@ -104,7 +104,7 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
 
   def doneGenerating(self):
     self.reset()
-    qt.QDesktopServices().openUrl(qt.QUrl('file://'+self.targetDirectoryButton.directory))
+    qt.QDesktopServices().openUrl(qt.QUrl(qt.QUrl.fromLocalFile(self.targetDirectoryButton.directory)))
     print "done generating!!!"
 
   def reset(self):
@@ -135,9 +135,10 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
     self.logic.configure(configPath,targetDirectoryPath,self.myQObject)
     self.logic.generate()
     forceVal = False
-    if self.logic.errorMessage == "AppExists":
+    if self.logic.errorMessage.startswith("AppExists:"):
+      targetDirectory = self.logic.errorMessage[len("AppExists:"):]
       answer = self.showErrorMessage("Target Exists","The application directory exists."
-                                                     '\n\n%s\n\nClick Ok to overwrite.' % targetDirectoryPath)
+                                                     '\n\n%s\n\nClick Ok to overwrite.' % targetDirectory)
       if answer == qt.QMessageBox.Ok:
         self.logic.configure(configPath,targetDirectoryPath,self.myQObject,force=True)
         self.logic.generate()
@@ -269,9 +270,12 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       targetPath = target
     else:
       targetPath,targetFileName = os.path.split(target)
-    if sourceFileName == "Slicer": target = os.path.join(targetPath, config['TargetAppName'])
-    if sourceFileName == "Slicer.exe": target = os.path.join(targetPath, config['TargetAppName'] + ".exe")
-    if sourceFileName == "SlicerLauncherSettings.ini": target = os.path.join(targetPath, config['TargetAppName']
+    version = ""
+    if 'Version' in config:
+      version = str(config['Version']).replace('.',"-") # CTKLauncher does not like "." in the filename
+    if sourceFileName == "Slicer": target = os.path.join(targetPath, config['TargetAppName'] + version)
+    if sourceFileName == "Slicer.exe": target = os.path.join(targetPath, config['TargetAppName'] + version + ".exe")
+    if sourceFileName == "SlicerLauncherSettings.ini": target = os.path.join(targetPath, config['TargetAppName'] + version
                                                                              + "LauncherSettings.ini")
     print('copy ', source, target)
     fp.write('copy \n' + source + '\n to \n->' + target + "\n")
@@ -287,13 +291,14 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     self.fileCountLimit = fileCountLimit
     self.myQObject = qobject
     self.ignoreUpdates = ignoreUpdates
-    self.errorMessage = None
+    self.errorMessage = ""
 
   def generate(self):
     """Performs the actual deed of making a custom application directory"""
     print "Starting Generate()"
     # get the config information
     self.cancel = False
+    self.errorMessage == ""
     if self.configPath == "" or self.targetDirectoryPath == "":
       self.errorMessage = "Error", "logic must be configured before calling 'generate()'"
       return
@@ -312,7 +317,12 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       self.errorMessage = str(e)
       return
     # determine and confirm target directory
-    targetAppDirectory = config['TargetAppName']
+    version = ""
+    versionFromJSON = ""
+    if 'Version' in config:
+      versionFromJSON = str(config['Version'])
+      version = versionFromJSON.replace('.',"-") # CTKLauncher does not like "." in the filename
+    targetAppDirectory = config['TargetAppName'] + version
     if slicer.app.platform.startswith('macosx'):
       targetAppDirectory += ".app"
     targetAppPath = os.path.join(self.targetDirectoryPath,targetAppDirectory)
@@ -320,7 +330,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       if self.force:
         shutil.rmtree(targetAppPath)
       else:
-        self.errorMessage = "AppExists"
+        self.errorMessage = "AppExists: "+targetAppPath
         return
     logFP = open(os.path.join(self.targetDirectoryPath,targetAppDirectory+".log.txt"), "w")
     # Check if there are updates available for extensions that are already installed
@@ -448,7 +458,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     customExtensionsPath = os.path.join(
       targetAppPath,
       interDirectory,
-      config['TargetAppName'] + "-Extensions")
+      config['TargetAppName'] + version + "-Extensions")
     customExtensionRelativePaths = []
     os.makedirs(customExtensionsPath)
     revisionSettings = slicer.app.revisionUserSettings()
@@ -495,17 +505,14 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     fp = open(customizerPath)
     moduleSource = fp.read()
     fp.close()
-    targetCustomizerModuleName = config['TargetAppName'] + "Customizer"
+    targetCustomizerModuleName = config['TargetAppName'] + version.replace("-","_") + "Customizer"
     moduleSource = moduleSource.replace("Customizer", targetCustomizerModuleName)
-    moduleSource = moduleSource.replace("@CUSTOM_APP_NAME@", config['TargetAppName'])
+    moduleSource = moduleSource.replace("@CUSTOM_APP_NAME@", config['TargetAppName'] + version )
     if 'WelcomeMessage' in config:
       moduleSource = moduleSource.replace("@CUSTOM_WELCOME_MESSAGE@", config['WelcomeMessage'])
     else:
       moduleSource = moduleSource.replace("@CUSTOM_WELCOME_MESSAGE@", "")
-    if 'Version' in config:
-      moduleSource = moduleSource.replace("@CUSTOM_VERSION_NUMBER@", config['Version'])
-    else:
-      moduleSource = moduleSource.replace("@CUSTOM_VERSION_NUMBER@", "")
+    moduleSource = moduleSource.replace("@CUSTOM_VERSION_NUMBER@", versionFromJSON)
     moduleSource = moduleSource.replace("@CUSTOM_REL_PATHS@", str(customExtensionRelativePaths))
     targetPath = os.path.join(
       targetAppPath,
@@ -519,41 +526,38 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
 
 
     # fix the name of the app executable
-    if slicer.app.platform.startswith('macosx'):
-      sourceAppReal = os.path.join(slicerDirectory, "Contents/MacOS/Slicer")
-      targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "Contents/MacOS/")
-      targetAppReal = os.path.join(targetAppRealPath, config['TargetAppName'])
-    elif slicer.app.platform.startswith('win'):
-      sourceAppReal = os.path.join(slicerDirectory, "bin/SlicerApp-real.exe")
-      targetAppExecutable = config['TargetAppName'] + "App-real.exe"
-      targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
-      targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
-    else:
-      sourceAppReal = os.path.join(slicerDirectory, "bin/SlicerApp-real")
-      targetAppExecutable = config['TargetAppName'] + "App-real"
-      targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
-      targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
-    # move the app to the right spot
-    try:
-      # creates all directories, raises an error if it already exists
-      os.makedirs(targetAppRealPath)
-    except OSError:
-      pass # not a problem if directories already exist
-    print('copy ', sourceAppReal, targetAppReal)
-    logFP.write('copy '+ sourceAppReal + " to " + targetAppReal)
-    shutil.copy(sourceAppReal, targetAppReal)
+    if not slicer.app.platform.startswith('macosx'):
+      if slicer.app.platform.startswith('win'):
+        targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
+        targetAppExecutable = config['TargetAppName'] + version + "App-real.exe"
+        targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
+        sourceAppReal = os.path.join(targetAppRealPath, "SlicerApp-real.exe")
+      else:
+        targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
+        targetAppExecutable = config['TargetAppName'] + version + "App-real"
+        targetAppReal = os.path.join(targetAppRealPath, targetAppExecutable)
+        sourceAppReal = os.path.join(targetAppRealPath, "SlicerApp-real")
+      # move the app to the right spot
+      try:
+        # creates all directories, raises an error if it already exists
+        os.makedirs(targetAppRealPath)
+      except OSError:
+        pass # not a problem if directories already exist
+      print('move ', sourceAppReal, targetAppReal)
+      logFP.write('move '+ sourceAppReal + " to " + targetAppReal)
+      shutil.move(sourceAppReal, targetAppReal)
 
     # fix the metadata file to launch the new executable name
-    targetAppName = config['TargetAppName']
+    targetAppName = config['TargetAppName'] + version
     if slicer.app.platform.startswith('win'):
       targetAppName += ".exe"
     if slicer.app.platform.startswith('macosx'):
       # change the plist file
       targetSettingsPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "Contents/Info.plist")
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.NativeFormat)
-      settings.setValue("CFBundleExecutable", config['TargetAppName'])
+      settings.setValue("CFBundleExecutable", config['TargetAppName'] + version)
     else:
-      targetSettingsPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin/SlicerLauncherSettings.ini")
+      targetSettingsPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin", config['TargetAppName'] + version + "LauncherSettings.ini")
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.IniFormat)
       settings.setValue("Application/path", "<APPLAUNCHER_DIR>/./bin/"+targetAppExecutable)
     settings.sync()
