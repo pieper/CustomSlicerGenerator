@@ -131,9 +131,9 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
     configPath = self.configPathEdit.currentPath
     targetDirectoryPath = self.targetDirectoryButton.directory
     if configPath == "" or targetDirectoryPath == "":
-      message = qt.QErrorMessage()
-      message.setWindowTitle("CustomSlicerGenerator")
-      message.showMessage("Must select config file and and output path")
+      self.message.showMessage("Must select config file and and output path")
+      self.reset()
+      return
     self.logic.configure(configPath,targetDirectoryPath,self.myQObject)
     self.logic.generate()
     forceVal = False
