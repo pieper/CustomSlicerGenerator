@@ -100,6 +100,8 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
 
 
   def cleanup(self):
+    if self.message:
+      del self.message
     pass
 
   def doneGenerating(self):
