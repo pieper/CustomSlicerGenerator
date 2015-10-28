@@ -100,6 +100,8 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
 
 
   def cleanup(self):
+    if self.message:
+      del self.message
     pass
 
   def doneGenerating(self):
@@ -129,9 +131,9 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
     configPath = self.configPathEdit.currentPath
     targetDirectoryPath = self.targetDirectoryButton.directory
     if configPath == "" or targetDirectoryPath == "":
-      message = qt.QErrorMessage()
-      message.setWindowTitle("CustomSlicerGenerator")
-      message.showMessage("Must select config file and and output path")
+      self.message.showMessage("Must select config file and and output path")
+      self.reset()
+      return
     self.logic.configure(configPath,targetDirectoryPath,self.myQObject)
     self.logic.generate()
     forceVal = False
@@ -376,23 +378,14 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
             self.errorMessage = text
             return
           self.log(logFP, "Installing "+extension)
-          # The following section should be handled correctly by Slicer but is not yet
-          # as of r24625.
-          # In Base/QTCore/qSlicerExtensionsManagerModel.cxx, donwloadExtension(...) can
-          # return 0, which is not handled in the function calling it: downloadAndInstallExtension(...)
-          # To avoid that issue, we add a test here before to make sure that when calling downloadAndInstallExtension(...)
-          # we do not have a problem
-          # Ideally we would just run "downloadAndInstallExtension", and if it fails to talk to the server
-          # we could just catch an error, and try X times to install the extension (X could be
-          # hardcoded or specified by the user)
-          if len(em.retrieveExtensionMetadata(all_itemids[0][1])) == 0:
+          ####################################
+          em.connect('extensionInstalled(const QString&)',self.IsInstalled)
+          if not em.downloadAndInstallExtension(all_itemids[0][1]):
+            em.disconnect('extensionInstalled(const QString&)',self.IsInstalled)
             text = "Failed to retrieve metadata for extension "+extension
             self.log(logFP, text)
             self.errorMessage = text
             return
-          ####################################
-          em.connect('extensionInstalled(const QString&)',self.IsInstalled)
-          em.downloadAndInstallExtension(all_itemids[0][1])
           self.log(logFP, "Processing")
           return
         else:
