@@ -43,6 +43,8 @@ class Customizer(ScriptedLoadableModule):
       if "@CUSTOM_WELCOME_MESSAGE@" != "":
         text +="\n\n@CUSTOM_WELCOME_MESSAGE@"
       qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
+
+      self.hideModules()
     else:
       if self.logic.currentAdditionalModulePaths() != []:
         text = "Warning: your Slicer installation configuration will be overwritten to allow the installation and use of @CUSTOM_APP_NAME@.\n\nClick Ok to continue installation or Cancel to preserve your current state"
@@ -62,6 +64,12 @@ class Customizer(ScriptedLoadableModule):
       choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
       if choice == qt.QMessageBox.Ok:
         slicer.util.restart()
+
+  def hideModules(self):
+    modules = [@MODULES_TO_HIDE@]
+    mm = slicer.util.findChildren(className='qSlicerModulesMenu')[0]
+    for moduleName in modules:
+      mm.removeModule(moduleName)
 
 
 
