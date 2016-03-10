@@ -510,10 +510,11 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     moduleSource = moduleSource.replace("@CUSTOM_REL_PATHS@", str(customExtensionRelativePaths))
 
     hidemodulearray = ''
-    for idx, moduleName in enumerate(config['ModulesToHide']):
-      hidemodulearray += '"' + moduleName + '"'
-      if idx < len(config['ModulesToHide']) - 1:
-        hidemodulearray += ","
+    if 'ModulesToHide' in config:
+      for idx, moduleName in enumerate(config['ModulesToHide']):
+        hidemodulearray += '"' + moduleName + '"'
+        if idx < len(config['ModulesToHide']) - 1:
+          hidemodulearray += ","
     moduleSource = moduleSource.replace("@MODULES_TO_HIDE@", hidemodulearray)
 
     targetPath = os.path.join(
