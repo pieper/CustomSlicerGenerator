@@ -67,12 +67,7 @@ class Customizer(ScriptedLoadableModule):
 
   def hideModules(self):
     modules = [@MODULES_TO_HIDE@]
-    try:
-      mm = slicer.util.findChildren(className='qSlicerModulesMenu')[0]
-    except:
-      for node in slicer.util.findChildren():
-        if node.className() == 'qSlicerModulesMenu':
-          mm = node
+    mm = slicer.util.findChildren(className='qSlicerModulesMenu')[0]
     for moduleName in modules:
       mm.removeModule(moduleName)
 
