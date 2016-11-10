@@ -197,7 +197,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     # reject cruft
     if filePath.endswith('.pyc'):
       return False
-    # accept extensions anid non-module files
+    # accept extensions and non-module files
     if self.isExtensionFile(filePath):
       return True
     if not self.isModuleFile(filePath):

@@ -1,1 +1,47 @@
-{ "TargetAppName" : "SlicerNULL", "ModulesToKeep" : [] }
+{
+  "TargetAppName" : "SlicerNULL",
+  "RequiredExtensions" : [],
+
+  "WelcomeMessage" : "This project is a pretty minimal version of Slicer generated as an example.",
+
+  "Version" : "0.0",
+
+  "RequiredExtensions" : [],
+
+  "ModulesToKeep" : [
+                      "Transforms",
+                      "Markups",
+                      "Models",
+                      "Data",
+                      "DICOM",
+                      "VolumeRendering",
+                      "GrayscaleModelMaker",
+                      "LabelMapSmoothing",
+                      "MergeModels",
+                      "ModelMaker",
+                      "ModelToLabelMap",
+                      "ProbeVolumeWithModel",
+                      "SurfaceToolbox",
+                      "VolumesModule",
+                      "SceneViews",
+                      "ScreenShots",
+                      "Fiducials",
+                      "SlicerWelcome",
+                      "Wizard",
+                      "Colors",
+                      "Editor",
+                      "LandmarkRegistration",
+                      "RegistrationLib",
+                      "CompareVolumes",
+                      "Cameras",
+                      "Annotations",
+                      "SubjectHierarchy",
+                      "Units"
+                     ],
+
+  "ModulesToSkip" : [
+                      "Test.py",
+                      "CreateDICOMSeries",
+                      "DICOM2FullBrainTractography"
+                    ]
+}
