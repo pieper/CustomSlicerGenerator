@@ -1,6 +1,5 @@
 {
   "TargetAppName" : "SlicerNULL",
-  "RequiredExtensions" : [],
 
   "WelcomeMessage" : "This project is a pretty minimal version of Slicer generated as an example.",
 
