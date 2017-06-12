@@ -135,6 +135,13 @@ class CustomizerLogic(ScriptedLoadableModuleLogic):
     revisionSettings = slicer.app.revisionUserSettings()
     requiredPaths = self.requiredAdditionalModulePaths()
     revisionSettings.setValue('Modules/AdditionalPaths', requiredPaths)
+    revisionSettings.beginWriteArray('PYTHONPATH')
+    index = 0
+    for requiredPath in requiredPaths:
+        revisionSettings.setArrayIndex(index)
+        revisionSettings.setValue('path', requiredPath)
+        index += 1
+    revisionSettings.endArray()
 
   def loadCustomExtensions(self,depth=1):
     """TODO: this does not actually load the modules
