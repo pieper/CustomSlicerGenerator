@@ -31,46 +31,47 @@ class Customizer(ScriptedLoadableModule):
     # Trigger the Customizer dialog to be shown when application has started up
     if not slicer.app.commandOptions().noMainWindow :
       self.logic = CustomizerLogic()
-      qt.QTimer.singleShot(0, self.showCustomizerWelcome)
+      slicer.app.connect("startupCompleted()", self.showCustomizerWelcome)
+
 
   def showCustomizerWelcome(self):
 
+
     title = "Customizer"
-    if self.logic.pathsAreSet():
-      text = "Welcome to @CUSTOM_APP_NAME@!"
-      if "@CUSTOM_VERSION_NUMBER@" != "":
-        text +="\n\nVersion: @CUSTOM_VERSION_NUMBER@"
-      if "@CUSTOM_WELCOME_MESSAGE@" != "":
-        text +="\n\n@CUSTOM_WELCOME_MESSAGE@"
-      qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
 
-      self.hideModules()
-    else:
-      if self.logic.currentAdditionalModulePaths() != []:
-        text = "Warning: your Slicer installation configuration will be overwritten to allow the installation and use of @CUSTOM_APP_NAME@.\n\nClick Ok to continue installation or Cancel to preserve your current state"
-        choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
-        if choice == qt.QMessageBox.Cancel:
-          text = "@CUSTOM_APP_NAME@ is not correctly configured.  Some operations will be be possible."
-          qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
-          return
-      self.logic.setRequiredPaths()
-      settings = qt.QSettings(slicer.app.slicerRevisionUserSettingsFilePath, qt.QSettings.IniFormat)
-      settings.setValue("Extensions/ManagerEnabled", "false")
-      if slicer.app.os is not "macos":
-        executableDir,executableFileName = os.path.split(slicer.app.launcherExecutableFilePath)
-        extensionsPath = os.path.join(executableDir, "Extensions-" + str(slicer.app.repositoryRevision))
-        settings.setValue("Extensions/InstallPath",extensionsPath)
-      text = "Configuration complete.  Click Okay to restart @CUSTOM_APP_NAME@."
-      choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
-      if choice == qt.QMessageBox.Ok:
-        slicer.util.restart()
+    if slicer.app.platform.startswith('linux') and not self.logic.pathsAreSet():
+       if self.logic.currentAdditionalModulePaths() != []:
+         text = "Warning: your Slicer installation configuration will be overwritten to allow the installation and use of @CUSTOM_APP_NAME@.\n\nClick Ok to continue installation or Cancel to preserve your current state"
+         choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
+         if choice == qt.QMessageBox.Cancel:
+           text = "@CUSTOM_APP_NAME@ is not correctly configured.  Some operations will be be possible."
+           qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
+           return
+       self.logic.setRequiredPaths()
+       settings = qt.QSettings(slicer.app.slicerRevisionUserSettingsFilePath, qt.QSettings.IniFormat)
+       settings.setValue("Extensions/ManagerEnabled", "false")
+       if slicer.app.os is not "macos":
+         executableDir,executableFileName = os.path.split(slicer.app.launcherExecutableFilePath)
+         extensionsPath = os.path.join(executableDir, "Extensions-" + str(slicer.app.repositoryRevision))
+         settings.setValue("Extensions/InstallPath",extensionsPath)
 
-  def hideModules(self):
-    modules = [@MODULES_TO_HIDE@]
-    mm = slicer.util.findChildren(className='qSlicerModulesMenu')[0]
-    for moduleName in modules:
-      mm.removeModule(moduleName)
 
+    restart = False
+    settings = slicer.app.userSettings()
+    if settings.value("Modules/HomeModule") != "AstroVolume" :
+      restart = True
+    settings.setValue("Modules/HomeModule", "AstroVolume")
+    settings.setValue("Modules/FavoriteModules", ("AstroWelcome", "AstroSampleData", "AstroVolume", "SlicerAstroData", "AstroStatistics",  "AstroSmoothing", "SegmentEditor", "AstroMasking", "AstroProfiles", "AstroMomentMaps", "AstroPVSlice", "AstroPVDiagram", "AstroModeling"))
+    title = "Customizer"
+    text = "Welcome to @CUSTOM_APP_NAME@!"
+    if "@CUSTOM_VERSION_NUMBER@" != "":
+      text +="\n\nVersion: @CUSTOM_VERSION_NUMBER@"
+    if "@CUSTOM_WELCOME_MESSAGE@" != "":
+      text +="\n\n@CUSTOM_WELCOME_MESSAGE@"
+    if restart:
+      text +="\n\n The Customizer has configurated SlicerAstro, please restart!"
+
+    qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
 
 
 #
