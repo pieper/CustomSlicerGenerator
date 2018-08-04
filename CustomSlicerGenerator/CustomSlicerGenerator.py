@@ -463,42 +463,43 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     if slicer.app.platform.startswith('macosx'):
       interDirectory = "Contents"
 
+
+    # copy all directories in the module path into
+    # a special CustomExtensions directory, which
+    # will be added to the settings by the Customizer
+    customExtensionsPath = os.path.join(
+      targetAppPath,
+      interDirectory,
+      config['TargetAppName'] + version + "-Extensions")
+    customExtensionRelativePaths = []
+    os.makedirs(customExtensionsPath)
+    revisionSettings = slicer.app.revisionUserSettings()
+    paths = revisionSettings.value('Modules/AdditionalPaths')
+    if not paths: paths = []
+    for path in paths:
+      if self.cancel:
+        self.log(logFP, "Manually interrupted.")
+        self.errorMessage = "Error", "Process interrupted while copying extensions"
+        return
+      sourcePath = None
+      targetPath = None
+      extIndex = path.find("Extensions-")
+      if extIndex != -1 and any(string in path for string in config['RequiredExtensions']):
+        extStartIndex = 1+path.find('/', extIndex)
+        if extStartIndex != 0:
+          extEndIndex = path.find('/', extStartIndex)
+          if extEndIndex != -1:
+            sourcePath = path[:extEndIndex]
+            targetRelativePath = path[extStartIndex:extEndIndex]
+            targetRelativeSearchPath = path[extStartIndex:]
+            targetPath = os.path.join(customExtensionsPath, targetRelativePath)
+            customExtensionRelativePaths.append(targetRelativeSearchPath)
+      if sourcePath and targetPath:
+        if not os.path.isdir(targetPath):
+          self.loggedCopy(logFP, sourcePath, targetPath, config)
+      else:
+        self.log(logFP, "Could not find extension paths for " + path)
     if not slicer.app.platform.startswith('macosx'):
-      # copy all directories in the module path into
-      # a special CustomExtensions directory, which
-      # will be added to the settings by the Customizer
-      customExtensionsPath = os.path.join(
-        targetAppPath,
-        interDirectory,
-        config['TargetAppName'] + version + "-Extensions")
-      customExtensionRelativePaths = []
-      os.makedirs(customExtensionsPath)
-      revisionSettings = slicer.app.revisionUserSettings()
-      paths = revisionSettings.value('Modules/AdditionalPaths')
-      if not paths: paths = []
-      for path in paths:
-        if self.cancel:
-          self.log(logFP, "Manually interrupted.")
-          self.errorMessage = "Error", "Process interrupted while copying extensions"
-          return
-        sourcePath = None
-        targetPath = None
-        extIndex = path.find("Extensions-")
-        if extIndex != -1 and any(string in path for string in config['RequiredExtensions']):
-          extStartIndex = 1+path.find('/', extIndex)
-          if extStartIndex != 0:
-            extEndIndex = path.find('/', extStartIndex)
-            if extEndIndex != -1:
-              sourcePath = path[:extEndIndex]
-              targetRelativePath = path[extStartIndex:extEndIndex]
-              targetRelativeSearchPath = path[extStartIndex:]
-              targetPath = os.path.join(customExtensionsPath, targetRelativePath)
-              customExtensionRelativePaths.append(targetRelativeSearchPath)
-        if sourcePath and targetPath:
-          if not os.path.isdir(targetPath):
-            self.loggedCopy(logFP, sourcePath, targetPath, config)
-        else:
-          self.log(logFP, "Could not find extension paths for " + path)
       # remove the original extension files that have been duplicated
       originalExtensionsPath = os.path.join(
         targetAppPath,
@@ -524,9 +525,8 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     else:
       moduleSource = moduleSource.replace("@CUSTOM_WELCOME_MESSAGE@", "")
     moduleSource = moduleSource.replace("@CUSTOM_VERSION_NUMBER@", versionFromJSON)
-    if not slicer.app.platform.startswith('macosx'):
-      moduleSource = moduleSource.replace("@CUSTOM_REL_PATHS@", str(customExtensionRelativePaths))
-      moduleSource = moduleSource.replace("@CUSTOM_REL_PATHS@", str(customExtensionRelativePaths))
+    moduleSource = moduleSource.replace("@CUSTOM_REL_PATHS@", str(customExtensionRelativePaths))
+    moduleSource = moduleSource.replace("@CUSTOM_REL_PATHS@", str(customExtensionRelativePaths))
 
     hidemodulearray = ''
     if 'ModulesToHide' in config:

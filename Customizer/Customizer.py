@@ -39,7 +39,7 @@ class Customizer(ScriptedLoadableModule):
 
     title = "Customizer"
 
-    if slicer.app.platform.startswith('linux') and not self.logic.pathsAreSet():
+    if not self.logic.pathsAreSet():
        if self.logic.currentAdditionalModulePaths() != []:
          text = "Warning: your Slicer installation configuration will be overwritten to allow the installation and use of @CUSTOM_APP_NAME@.\n\nClick Ok to continue installation or Cancel to preserve your current state"
          choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
@@ -114,12 +114,20 @@ class CustomizerLogic(ScriptedLoadableModuleLogic):
     required to run the extensions related
     to this custom slicer"""
     requiredPaths = []
-    for relPath in @CUSTOM_REL_PATHS@:
-      absPath = os.path.join(
-                  slicer.app.slicerHome,
-                  "@CUSTOM_APP_NAME@"+"-Extensions",
-                  relPath)
-      requiredPaths.append(absPath)
+    if not slicer.app.platform.startswith('macosx'):
+      for relPath in @CUSTOM_REL_PATHS@:
+        absPath = os.path.join(
+                    slicer.app.slicerHome,
+                    "@CUSTOM_APP_NAME@"+"-Extensions",
+                    relPath)
+        requiredPaths.append(absPath)
+    else:
+      for relPath in @CUSTOM_REL_PATHS@:
+        absPath = os.path.join(
+                    slicer.app.slicerHome,
+                    "Extensions-"+slicer.app.repositoryRevision,
+                    relPath)
+        requiredPaths.append(absPath)
     return requiredPaths
 
   def pathsAreSet(self):
@@ -154,10 +162,17 @@ class CustomizerLogic(ScriptedLoadableModuleLogic):
     newModules = []
     failedModules = []
     for relPath in @CUSTOM_REL_PATHS@:
-      absPath = os.path.join(
-                  slicer.app.slicerHome,
-                  "@CUSTOM_APP_NAME@"+"-Extensions",
-                  relPath)
+      absPath = "ABSPATH"
+      if not slicer.app.platform.startswith('macosx'):
+        absPath = os.path.join(
+                    slicer.app.slicerHome,
+                    "@CUSTOM_APP_NAME@"+"-Extensions",
+                    relPath)
+      else:
+        absPath = os.path.join(
+                    slicer.app.slicerHome,
+                    "Extensions-"+slicer.app.repositoryRevision,
+                    relPath)
       print("Looking for modules in: " + absPath)
       modules = ModuleInfo.findModules(absPath,depth)
       print("Found custom modules: " + str(modules))
