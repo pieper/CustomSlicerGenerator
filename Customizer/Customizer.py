@@ -39,7 +39,9 @@ class Customizer(ScriptedLoadableModule):
 
     title = "Customizer"
 
+    restart = False
     if not self.logic.pathsAreSet():
+       restart = True
        if self.logic.currentAdditionalModulePaths() != []:
          text = "Warning: your Slicer installation configuration will be overwritten to allow the installation and use of @CUSTOM_APP_NAME@.\n\nClick Ok to continue installation or Cancel to preserve your current state"
          choice = qt.QMessageBox.warning(slicer.util.mainWindow(), title, text, qt.QMessageBox.Ok|qt.QMessageBox.Cancel)
@@ -56,12 +58,7 @@ class Customizer(ScriptedLoadableModule):
          settings.setValue("Extensions/InstallPath",extensionsPath)
 
 
-    restart = False
-    settings = slicer.app.userSettings()
-    if settings.value("Modules/HomeModule") != "AstroVolume" :
-      restart = True
-    settings.setValue("Modules/HomeModule", "AstroVolume")
-    settings.setValue("Modules/FavoriteModules", ("AstroWelcome", "AstroSampleData", "AstroVolume", "SlicerAstroData", "AstroStatistics",  "AstroSmoothing", "SegmentEditor", "AstroMasking", "AstroProfiles", "AstroMomentMaps", "AstroPVSlice", "AstroPVDiagram", "AstroModeling"))
+
     title = "Customizer"
     text = "Welcome to @CUSTOM_APP_NAME@!"
     if "@CUSTOM_VERSION_NUMBER@" != "":
@@ -69,7 +66,7 @@ class Customizer(ScriptedLoadableModule):
     if "@CUSTOM_WELCOME_MESSAGE@" != "":
       text +="\n\n@CUSTOM_WELCOME_MESSAGE@"
     if restart:
-      text +="\n\n The Customizer has configurated SlicerAstro, please restart!"
+      text +="\n\n The Customizer has configurated the binaries, please restart!"
 
     qt.QMessageBox.information(slicer.util.mainWindow(), title, text)
 
