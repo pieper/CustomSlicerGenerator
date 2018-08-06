@@ -6,6 +6,7 @@ import json
 import fnmatch
 import urllib
 import urllib2
+import distutils.dir_util
 from __main__ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 
@@ -282,9 +283,26 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     print('copy ', source, target)
     fp.write('copy \n' + source + '\n to \n->' + target + "\n")
     if os.path.isdir(source):
-      shutil.copytree(source, target)
+      shutil.copytree(source, target, True)
     else:
-      shutil.copy(source, target)
+      if os.path.islink(source) and slicer.app.platform.startswith('linux'):
+        linkto = os.readlink(source)
+        if os.path.islink(sourcePath+"/"+linkto):
+          link2to = os.readlink(sourcePath+"/"+linkto)
+          if (not os.path.exists(targetPath+"/"+link2to)):
+            shutil.copy(sourcePath+"/"+link2to, targetPath+"/"+link2to)
+          if (not os.path.exists(targetPath+"/"+linkto)):
+            os.symlink(link2to, targetPath+"/"+linkto)
+          if (not os.path.exists(targetPath+"/"+sourceFileName)):
+            os.symlink(linkto, targetPath+"/"+sourceFileName)
+        else:
+          if (not os.path.exists(targetPath+"/"+linkto)):
+            shutil.copy(sourcePath+"/"+linkto, targetPath+"/"+linkto)
+          if (not os.path.exists(targetPath+"/"+sourceFileName)):
+            os.symlink(linkto, targetPath+"/"+sourceFileName)
+      else:
+        shutil.copy(source,target)
+
 
   def configure(self,configPath,targetDirectoryPath,qobject, force=False,fileCountLimit=-1,ignoreUpdates=False):
     self.configPath = configPath
@@ -347,7 +365,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       self.log(logFP, "Extension updates ignored.")
     # Install extensions that are not already installed
     if 'RequiredExtensions' in config:
-      url = em.serverUrl.toString() + '/api/json'
+      url = em.serverUrl.__self__.serverUrl().toString() + '/api/json'
       for extension in config['RequiredExtensions']:
         if self.cancel:
           self.log(logFP, "Manually interrupted.")
@@ -445,6 +463,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     if slicer.app.platform.startswith('macosx'):
       interDirectory = "Contents"
 
+
     # copy all directories in the module path into
     # a special CustomExtensions directory, which
     # will be added to the settings by the Customizer
@@ -480,9 +499,8 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
           self.loggedCopy(logFP, sourcePath, targetPath, config)
       else:
         self.log(logFP, "Could not find extension paths for " + path)
-
-    # If on MacOS, remove the original extension files that have been duplicated
-    if slicer.app.platform.startswith('macosx'):
+    if not slicer.app.platform.startswith('macosx'):
+      # remove the original extension files that have been duplicated
       originalExtensionsPath = os.path.join(
         targetAppPath,
         interDirectory,
@@ -491,6 +509,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       if os.path.isdir(originalExtensionsPath):
         self.log(logFP, 'removing ' + originalExtensionsPath)
         shutil.rmtree(originalExtensionsPath)
+
     # make a custom version of the Customizer module
     customizerPath = os.path.join(
       os.path.dirname(slicer.modules.customslicergenerator.path),
@@ -529,6 +548,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
 
 
     # fix the name of the app executable
+    targetAppExecutable = "NameApp"
     if not slicer.app.platform.startswith('macosx'):
       if slicer.app.platform.startswith('win'):
         targetAppRealPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin")
@@ -550,6 +570,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       logFP.write('move '+ sourceAppReal + " to " + targetAppReal)
       shutil.move(sourceAppReal, targetAppReal)
 
+
     # fix the metadata file to launch the new executable name
     targetAppName = config['TargetAppName'] + version
     if slicer.app.platform.startswith('win'):
@@ -559,10 +580,40 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
       targetSettingsPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "Contents/Info.plist")
       settings = qt.QSettings(targetSettingsPath, qt.QSettings.NativeFormat)
       settings.setValue("CFBundleExecutable", config['TargetAppName'] + version)
-    else:
+
+    if not slicer.app.platform.startswith('macosx'):
       targetSettingsPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "bin", config['TargetAppName'] + version + "LauncherSettings.ini")
-      settings = qt.QSettings(targetSettingsPath, qt.QSettings.IniFormat)
+    else:
+      targetSettingsPath = os.path.join(self.targetDirectoryPath, targetAppDirectory, "Contents/bin", config['TargetAppName'] + version + "LauncherSettings.ini")
+    settings = qt.QSettings(targetSettingsPath, qt.QSettings.IniFormat)
+
+    if not slicer.app.platform.startswith('macosx'):
       settings.setValue("Application/path", "<APPLAUNCHER_DIR>/./bin/"+targetAppExecutable)
+
+    extensionFolder = "extensionFolder"
+    if slicer.app.platform.startswith('macosx'):
+      extensionFolder = "<APPLAUNCHER_SETTINGS_DIR>/../Extensions-"+slicer.app.repositoryRevision+"/"+config['TargetAppName']
+    else:
+      extensionFolder = "<APPLAUNCHER_SETTINGS_DIR>/../" + config['TargetAppName'] + version + "-Extensions/"+config['TargetAppName']
+    slicerFullVersion = slicer.app.applicationVersion
+    slicerVersion = slicerFullVersion[0:slicerFullVersion.rfind('.')]
+    size = int(settings.value("LibraryPaths/size"))
+    settings.setValue("LibraryPaths/"+str(size+1)+"/path", extensionFolder + "/lib/Slicer-"+slicerVersion+"/qt-loadable-modules")
+    settings.setValue("LibraryPaths/"+str(size+2)+"/path", extensionFolder + "/lib/Slicer-"+slicerVersion)
+    settings.setValue("LibraryPaths/size", str(size+2))
+    size = int(settings.value("Paths/size"))
+    settings.setValue("Paths/"+str(size+1)+"/path", extensionFolder + "/lib/Slicer-"+slicerVersion+"/qt-loadable-modules")
+    settings.setValue("Paths/size", str(size+1))
+    size = int(settings.value("PYTHONPATH/size"))
+    settings.setValue("PYTHONPATH/"+str(size+1)+"/path", extensionFolder + "/lib/Slicer-"+slicerVersion+"/qt-loadable-modules")
+    settings.setValue("PYTHONPATH/"+str(size+2)+"/path", extensionFolder + "/lib/Slicer-"+slicerVersion+"/qt-loadable-modules/Python")
+    settings.setValue("PYTHONPATH/"+str(size+3)+"/path", extensionFolder + "/lib/Slicer-"+slicerVersion+"/qt-scripted-modules")
+    settings.setValue("PYTHONPATH/"+str(size+4)+"/path", extensionFolder + "/lib/Slicer-"+slicerVersion+"")
+    settings.setValue("PYTHONPATH/"+str(size+5)+"/path", extensionFolder + "/lib/python2.7/site-packages")
+    settings.setValue("PYTHONPATH/"+str(size+6)+"/path", extensionFolder + "/lib/python2.7/lib-dynload")
+    settings.setValue("PYTHONPATH/"+str(size+7)+"/path", extensionFolder + "/lib/python2.7")
+    settings.setValue("PYTHONPATH/size", str(size+7))
+
     settings.sync()
 
     logFP.close()

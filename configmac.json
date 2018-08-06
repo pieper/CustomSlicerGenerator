@@ -1,0 +1,43 @@
+{
+    "TargetAppName": "SlicerAstro",
+    "WelcomeMessage": "This project was supported by the European Research Council under the European Union's Seventh Framework Programme (FP/2007-2013)/ERC Grant Agreement nr. 291-531.",
+    "Version": "-1.0.0-macosx-amd64",
+    "RequiredExtensions": ["SlicerAstro"],
+    "ModulesToKeep": [
+        "vtkSlicerAstroVolumeModuleLogicPython",
+        "Annotations",
+        "Cameras",
+        "Colors",
+        "Data",
+        "DataProbe",
+        "DataStore",
+        "DoubleArrays",
+        "Markups",
+        "Models",
+        "Plots",
+        "Reformat",
+        "SceneViews",
+        "ScreenShots",
+        "ScreenCapture",
+        "SegmentEditor",
+        "Segmentations",
+        "SubjectHierarchy",
+        "Tables",
+        "Terminologies",
+        "Transforms",
+        "Units",
+        "VolumeRendering",
+        "VolumesModule",
+        "ViewControllers"
+     ],
+    "ModulesToSkip": [
+        "Test.py",
+        "CreateDICOMSeries",
+        "DICOM2FullBrainTractography",
+        "DICOMLib",
+        "DICOMPlugin",
+        "DICOMSlicerDataBundlePlugin.py",
+        "DICOMSlicerDataBundlePlugin",
+        "SampleData"
+     ]
+}
