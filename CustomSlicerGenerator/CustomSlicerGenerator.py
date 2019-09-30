@@ -5,7 +5,7 @@ import shutil
 import json
 import fnmatch
 import urllib
-import urllib2
+import urllib.request
 import distutils.dir_util
 from __main__ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
@@ -108,7 +108,7 @@ class CustomSlicerGeneratorWidget(ScriptedLoadableModuleWidget):
   def doneGenerating(self):
     self.reset()
     qt.QDesktopServices().openUrl(qt.QUrl(qt.QUrl.fromLocalFile(self.targetDirectoryButton.directory)))
-    print "done generating!!!"
+    print ("done generating!!!")
 
   def reset(self):
     self.applyButton.setText("Generate")
@@ -239,7 +239,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
   def _call_midas_url(self, url, data):
     url_values = urllib.urlencode(data)
     full_url = url + '?' + url_values
-    response = urllib2.urlopen(full_url)
+    response = urllib.request.urlopen(full_url)
     response_read = response.read()
     response_dict = json.loads(response_read)
     response_data = response_dict['data']
@@ -261,7 +261,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     return self._call_midas_url(url, data)
   #########################################################################################
   def IsInstalled(self,extension):
-    print extension + " is now installed."
+    print (extension + " is now installed.")
     em = slicer.app.extensionsManagerModel()
     em.disconnect('extensionInstalled(const QString&)',self.IsInstalled)
     self.generate()
@@ -315,7 +315,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
 
   def generate(self):
     """Performs the actual deed of making a custom application directory"""
-    print "Starting Generate()"
+    print ("Starting Generate()")
     # get the config information
     self.cancel = False
     self.errorMessage == ""
@@ -333,7 +333,7 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
                             "the file, try an on-line validator such as jsonlint.com."
         return
       configFP.close()
-    except Exception, e:
+    except Exception as e:
       self.errorMessage = str(e)
       return
     # determine and confirm target directory
