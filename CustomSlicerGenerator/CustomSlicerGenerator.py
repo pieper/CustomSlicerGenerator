@@ -462,15 +462,18 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
     interDirectory = ""
     if slicer.app.platform.startswith('macosx'):
       interDirectory = "Contents"
-
-
+      customExtensionsPath = os.path.join(
+        targetAppPath,
+        interDirectory,
+        "Extensions-" + slicer.app.repositoryRevision)
+    else:
+      customExtensionsPath = os.path.join(
+        targetAppPath,
+        interDirectory,
+        config['TargetAppName'] + version + "-Extensions")
     # copy all directories in the module path into
     # a special CustomExtensions directory, which
-    # will be added to the settings by the Customizer
-    customExtensionsPath = os.path.join(
-      targetAppPath,
-      interDirectory,
-      config['TargetAppName'] + version + "-Extensions")
+    # will be added to the settings by the Customizer   
     customExtensionRelativePaths = []
     os.makedirs(customExtensionsPath)
     revisionSettings = slicer.app.revisionUserSettings()
@@ -499,13 +502,13 @@ class CustomSlicerGeneratorLogic(ScriptedLoadableModuleLogic):
           self.loggedCopy(logFP, sourcePath, targetPath, config)
       else:
         self.log(logFP, "Could not find extension paths for " + path)
-    if not slicer.app.platform.startswith('macosx'):
-      # remove the original extension files that have been duplicated
-      originalExtensionsPath = os.path.join(
-        targetAppPath,
-        interDirectory,
-        "Extensions-"+slicer.app.repositoryRevision
+    # remove the original extension files that have been duplicated
+    originalExtensionsPath = os.path.join(
+      targetAppPath,
+      interDirectory,
+      "Extensions-"+slicer.app.mainApplicationRevision
       )
+    if originalExtensionsPath is not customExtensionsPath:
       if os.path.isdir(originalExtensionsPath):
         self.log(logFP, 'removing ' + originalExtensionsPath)
         shutil.rmtree(originalExtensionsPath)
